@@ -19,6 +19,7 @@ use OCA\Mail\Db\TagMapper;
 use OCA\Mail\Exception\CouldNotConnectException;
 use OCA\Mail\Exception\ServiceException;
 use OCA\Mail\IMAP\IMAPClientFactory;
+use OCA\Mail\Service\InboundProtocol\InboundProtocolServiceFactory;
 use OCA\Mail\SMTP\SmtpClientFactory;
 use OCP\Security\ICrypto;
 use Psr\Log\LoggerInterface;
@@ -43,18 +44,23 @@ class SetupService {
 	/** @var TagMapper */
 	private $tagMapper;
 
+	/** @var InboundProtocolServiceFactory */
+	private $protocolServiceFactory;
+
 	public function __construct(AccountService $accountService,
 		ICrypto $crypto,
 		SmtpClientFactory $smtpClientFactory,
 		IMAPClientFactory $imapClientFactory,
 		LoggerInterface $logger,
-		TagMapper $tagMapper) {
+		TagMapper $tagMapper,
+		InboundProtocolServiceFactory $protocolServiceFactory) {
 		$this->accountService = $accountService;
 		$this->crypto = $crypto;
 		$this->smtpClientFactory = $smtpClientFactory;
 		$this->imapClientFactory = $imapClientFactory;
 		$this->logger = $logger;
 		$this->tagMapper = $tagMapper;
+		$this->protocolServiceFactory = $protocolServiceFactory;
 	}
 
 	/**
@@ -78,12 +84,14 @@ class SetupService {
 		string $uid,
 		string $authMethod,
 		?int $accountId = null,
-		?bool $classificationEnabled = null): Account {
+		?bool $classificationEnabled = null,
+		?string $protocol = 'imap'): Account {
 		$this->logger->info('Setting up manually configured account');
 		$newAccount = new MailAccount([
 			'accountId' => $accountId,
 			'accountName' => $accountName,
 			'emailAddress' => $emailAddress,
+			'protocol' => $protocol ?? 'imap',
 			'imapHost' => $imapHost,
 			'imapPort' => $imapPort,
 			'imapSslMode' => $imapSslMode,
@@ -127,15 +135,20 @@ class SetupService {
 	protected function testConnectivity(Account $account): void {
 		$mailAccount = $account->getMailAccount();
 
-		$imapClient = $this->imapClientFactory->getClient($account);
+		// Test inbound connection using protocol service
 		try {
-			$imapClient->login();
-		} catch (Horde_Imap_Client_Exception $e) {
-			throw new CouldNotConnectException($e, 'IMAP', $mailAccount->getInboundHost(), $mailAccount->getInboundPort());
-		} finally {
-			$imapClient->logout();
+			$protocolService = $this->protocolServiceFactory->getService($account);
+			$protocolService->testConnection($account);
+		} catch (ServiceException $e) {
+			throw new CouldNotConnectException(
+				$e,
+				strtoupper($protocolService->getProtocolName()),
+				$mailAccount->getInboundHost(),
+				$mailAccount->getInboundPort()
+			);
 		}
 
+		// Test SMTP connection
 		$transport = $this->smtpClientFactory->create($account);
 		if ($transport instanceof Horde_Mail_Transport_Smtphorde) {
 			try {
