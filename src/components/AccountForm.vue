@@ -345,6 +345,7 @@ export default {
 				imapSslMode: fromAccountOr('imapSslMode', 'ssl'),
 				imapUser: fromAccountOr('imapUser', ''),
 				imapPassword: '',
+				inboundProtocol: fromAccountOr('inboundProtocol', 'imap'),
 				smtpHost: fromAccountOr('smtpHost', ''),
 				smtpPort: fromAccountOr('smtpPort', 587),
 				smtpSslMode: fromAccountOr('smtpSslMode', 'tls'),

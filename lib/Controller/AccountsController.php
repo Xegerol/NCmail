@@ -151,7 +151,8 @@ class AccountsController extends Controller {
 		?string $smtpSslMode = null,
 		?string $smtpUser = null,
 		?string $smtpPassword = null,
-		string $authMethod = 'password'): JSONResponse {
+		string $authMethod = 'password',
+		?string $inboundProtocol = 'imap'): JSONResponse {
 		try {
 			// Make sure the account actually exists
 			$this->accountService->find($this->currentUserId, $id);
@@ -181,7 +182,7 @@ class AccountsController extends Controller {
 
 		try {
 			return MailJsonResponse::success(
-				$this->setup->createNewAccount($accountName, $emailAddress, $imapHost, $imapPort, $imapSslMode, $imapUser, $imapPassword, $smtpHost, $smtpPort, $smtpSslMode, $smtpUser, $smtpPassword, $this->currentUserId, $authMethod, $id)
+				$this->setup->createNewAccount($accountName, $emailAddress, $imapHost, $imapPort, $imapSslMode, $imapUser, $imapPassword, $smtpHost, $smtpPort, $smtpSslMode, $smtpUser, $smtpPassword, $this->currentUserId, $authMethod, $id, null, $inboundProtocol)
 			);
 		} catch (CouldNotConnectException $e) {
 			$data = [
@@ -361,7 +362,8 @@ class AccountsController extends Controller {
 		?string $smtpUser = null,
 		?string $smtpPassword = null,
 		string $authMethod = 'password',
-		?bool $classificationEnabled = null): JSONResponse {
+		?bool $classificationEnabled = null,
+		?string $inboundProtocol = 'imap'): JSONResponse {
 		if ($this->config->getAppValue(Application::APP_ID, 'allow_new_mail_accounts', 'yes') === 'no') {
 			$this->logger->info('Creating account disabled by admin.');
 			return MailJsonResponse::error('Could not create account');
@@ -393,7 +395,7 @@ class AccountsController extends Controller {
 			);
 		}
 		try {
-			$account = $this->setup->createNewAccount($accountName, $emailAddress, $imapHost, $imapPort, $imapSslMode, $imapUser, $imapPassword, $smtpHost, $smtpPort, $smtpSslMode, $smtpUser, $smtpPassword, $this->currentUserId, $authMethod, null, $classificationEnabled);
+			$account = $this->setup->createNewAccount($accountName, $emailAddress, $imapHost, $imapPort, $imapSslMode, $imapUser, $imapPassword, $smtpHost, $smtpPort, $smtpSslMode, $smtpUser, $smtpPassword, $this->currentUserId, $authMethod, null, $classificationEnabled, $inboundProtocol);
 			// Set initial heartbeat
 			$this->config->setUserValue(
 				$account->getUserId(),
