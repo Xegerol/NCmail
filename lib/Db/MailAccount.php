@@ -21,6 +21,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setName(string $name)
  * @method string getEmail()
  * @method void setEmail(string $email)
+ * @method string getInboundProtocol()
+ * @method void setInboundProtocol(string $inboundProtocol)
  * @method string getInboundHost()
  * @method void setInboundHost(string $inboundHost)
  * @method integer getInboundPort()
@@ -115,6 +117,7 @@ class MailAccount extends Entity {
 	protected $userId;
 	protected $name;
 	protected $email;
+	protected $inboundProtocol;
 	protected $inboundHost;
 	protected $inboundPort;
 	protected $inboundSslMode;
@@ -208,6 +211,10 @@ class MailAccount extends Entity {
 			$this->setEmail($params['emailAddress']);
 		}
 
+		if (isset($params['protocol'])) {
+			$this->setInboundProtocol($params['protocol']);
+		}
+
 		if (isset($params['imapHost'])) {
 			$this->setInboundHost($params['imapHost']);
 		}
@@ -277,6 +284,7 @@ class MailAccount extends Entity {
 		$this->addType('sievePort', 'integer');
 		$this->addType('signatureAboveQuote', 'boolean');
 		$this->addType('signatureMode', 'integer');
+		$this->addType('inboundProtocol', 'string');
 		$this->addType('smimeCertificateId', 'integer');
 		$this->addType('quotaPercentage', 'integer');
 		$this->addType('trashRetentionDays', 'integer');
@@ -311,6 +319,7 @@ class MailAccount extends Entity {
 			'order' => $this->getOrder(),
 			'emailAddress' => $this->getEmail(),
 			'authMethod' => $this->getAuthMethod() ?? 'password',
+			'inboundProtocol' => $this->getInboundProtocol() ?? 'imap',
 			'imapHost' => $this->getInboundHost(),
 			'imapPort' => $this->getInboundPort(),
 			'imapUser' => $this->getInboundUser(),
