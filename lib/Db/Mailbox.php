@@ -56,6 +56,8 @@ use function strtolower;
  * @method void setShared(bool $shared)
  * @method string getNameHash()
  * @method void setNameHash(string $nameHash)
+ * @method bool getLocalOnly()
+ * @method void setLocalOnly(bool $localOnly)
  */
 class Mailbox extends Entity implements JsonSerializable {
 	protected $name;
@@ -76,6 +78,7 @@ class Mailbox extends Entity implements JsonSerializable {
 	protected $myAcls;
 	protected $shared;
 	protected $nameHash;
+	protected $localOnly;
 
 	/**
 	 * @var int
@@ -93,6 +96,7 @@ class Mailbox extends Entity implements JsonSerializable {
 		$this->addType('selectable', 'boolean');
 		$this->addType('syncInBackground', 'boolean');
 		$this->addType('shared', 'boolean');
+		$this->addType('localOnly', 'boolean');
 	}
 
 	public function isInbox(): bool {
