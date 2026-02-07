@@ -109,6 +109,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setClassificationEnabled(bool $classificationEnabled)
  * @method bool getImipCreate()
  * @method void setImipCreate(bool $value)
+ * @method bool getDraftsStoreOnServer()
+ * @method void setDraftsStoreOnServer(bool $value)
  */
 class MailAccount extends Entity {
 	public const SIGNATURE_MODE_PLAIN = 0;
@@ -196,6 +198,8 @@ class MailAccount extends Entity {
 	protected bool $classificationEnabled = true;
 
 	protected bool $imipCreate = false;
+
+	protected bool $draftsStoreOnServer = false;
 
 	/**
 	 * @param array $params
@@ -294,6 +298,7 @@ class MailAccount extends Entity {
 		$this->addType('debug', 'boolean');
 		$this->addType('classificationEnabled', 'boolean');
 		$this->addType('imipCreate', 'boolean');
+		$this->addType('draftsStoreOnServer', 'boolean');
 	}
 
 	public function getOutOfOfficeFollowsSystem(): bool {
@@ -346,6 +351,7 @@ class MailAccount extends Entity {
 			'debug' => $this->getDebug(),
 			'classificationEnabled' => $this->getClassificationEnabled(),
 			'imipCreate' => $this->getImipCreate(),
+			'draftsStoreOnServer' => $this->getDraftsStoreOnServer(),
 		];
 
 		if (!is_null($this->getOutboundHost())) {
