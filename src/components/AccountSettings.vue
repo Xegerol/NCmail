@@ -48,7 +48,7 @@
 			<TrashRetentionSettings :account="account" />
 		</AppSettingsSection>
 		<AppSettingsSection
-			v-if="account"
+			v-if="account && !isPop3Account"
 			id="out-of-office-replies"
 			:name="t('mail', 'Autoresponder')">
 			<p class="settings-hint">
@@ -81,7 +81,7 @@
 			</NcCheckboxRadioSwitch>
 		</AppSettingsSection>
 		<AppSettingsSection
-			v-if="account && account.sieveEnabled"
+			v-if="account && account.sieveEnabled && !isPop3Account"
 			id="mail-filters"
 			:name="t('mail', 'Filters')">
 			<div id="mail-filters">
@@ -95,7 +95,7 @@
 			<Settings :key="account.accountId" ref="quickActions" :account="account" />
 		</AppSettingsSection>
 		<AppSettingsSection
-			v-if="account && account.sieveEnabled"
+			v-if="account && account.sieveEnabled && !isPop3Account"
 			id="sieve-filter"
 			:name="t('mail', 'Sieve script editor')">
 			<div id="sieve-filter">
@@ -119,7 +119,7 @@
 			</div>
 		</AppSettingsSection>
 		<AppSettingsSection
-			v-if="account && !account.provisioningId"
+			v-if="account && !account.provisioningId && !isPop3Account"
 			id="sieve-settings"
 			:name="t('mail', 'Sieve server')">
 			<div id="sieve-settings">
@@ -208,6 +208,11 @@ export default {
 
 		email() {
 			return this.account.emailAddress
+		},
+
+		isPop3Account() {
+			const protocol = this.account.inboundProtocol || 'imap'
+			return protocol === 'pop3'
 		},
 	},
 

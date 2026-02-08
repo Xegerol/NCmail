@@ -154,6 +154,12 @@ class MailSearch implements IMailSearch {
 			return $this->messageMapper->findIdsByQuery($mailbox, $query, $sortOrder, $limit);
 		}
 
+		// For POP3 accounts, skip IMAP search and do local search only
+		$inboundProtocol = $account->getMailAccount()->getInboundProtocol() ?? 'imap';
+		if ($inboundProtocol === 'pop3') {
+			return $this->messageMapper->findIdsByQuery($mailbox, $query, $sortOrder, $limit);
+		}
+
 		$fromImap = $this->imapSearchProvider->findMatches(
 			$account,
 			$mailbox,

@@ -65,7 +65,37 @@
 					{{ t('mail', 'Please enter an email of the format name@example.com') }}
 				</p>
 
-				<h3>{{ t('mail', 'IMAP Settings') }}</h3>
+				<h4 class="account-form__heading--required">
+					{{ t('mail', 'Inbound Protocol') }}
+				</h4>
+				<div class="flex-row">
+					<NcCheckboxRadioSwitch
+						id="man-protocol-imap"
+						:button-variant="true"
+						:model-value="manualConfig.inboundProtocol"
+						type="radio"
+						name="man-protocol"
+						:disabled="loading"
+						value="imap"
+						button-variant-grouped="horizontal"
+						@update:checked="onProtocolChange">
+						{{ t('mail', 'IMAP') }}
+					</NcCheckboxRadioSwitch>
+					<NcCheckboxRadioSwitch
+						id="man-protocol-pop3"
+						:button-variant="true"
+						:model-value="manualConfig.inboundProtocol"
+						type="radio"
+						name="man-protocol"
+						:disabled="loading"
+						value="pop3"
+						button-variant-grouped="horizontal"
+						@update:checked="onProtocolChange">
+						{{ t('mail', 'POP3') }}
+					</NcCheckboxRadioSwitch>
+				</div>
+
+				<h3>{{ inboundSettingsLabel }}</h3>
 				<NcInputField
 					id="man-imap-host"
 					v-model="manualConfig.imapHost"
@@ -76,7 +106,7 @@
 					required
 					@change="clearFeedback" />
 				<h4 class="account-form__heading--required">
-					{{ t('mail', 'IMAP Security') }}
+					{{ inboundSecurityLabel }}
 				</h4>
 				<div class="flex-row">
 					<NcCheckboxRadioSwitch
@@ -119,18 +149,18 @@
 				<NcInputField
 					id="man-imap-port"
 					v-model="manualConfig.imapPort"
-					:label="t('mail', 'IMAP Port')"
+					:label="inboundPortLabel"
 					type="number"
-					:placeholder="t('mail', 'IMAP Port')"
+					:placeholder="inboundPortLabel"
 					:disabled="loading"
 					required
 					@change="clearFeedback" />
 				<NcInputField
 					id="man-imap-user"
 					v-model="manualConfig.imapUser"
-					:label="t('mail', 'IMAP User')"
+					:label="inboundUserLabel"
 					type="text"
-					:placeholder="t('mail', 'IMAP User')"
+					:placeholder="inboundUserLabel"
 					:disabled="loading"
 					required
 					@change="clearFeedback" />
@@ -139,7 +169,7 @@
 					id="man-imap-password"
 					v-model="manualConfig.imapPassword"
 					type="password"
-					:label="t('mail', 'IMAP Password')"
+					:label="inboundPasswordLabel"
 					:disabled="loading"
 					required
 					@change="clearFeedback" />
@@ -423,6 +453,42 @@ export default {
 				|| (this.isMicrosoftAccount && this.microsoftOauthUrl)
 		},
 
+		inboundSettingsLabel() {
+			return this.manualConfig.inboundProtocol === 'pop3'
+				? t('mail', 'POP3 Settings')
+				: t('mail', 'IMAP Settings')
+		},
+
+		inboundHostLabel() {
+			return this.manualConfig.inboundProtocol === 'pop3'
+				? t('mail', 'POP3 Host')
+				: t('mail', 'IMAP Host')
+		},
+
+		inboundPortLabel() {
+			return this.manualConfig.inboundProtocol === 'pop3'
+				? t('mail', 'POP3 Port')
+				: t('mail', 'IMAP Port')
+		},
+
+		inboundUserLabel() {
+			return this.manualConfig.inboundProtocol === 'pop3'
+				? t('mail', 'POP3 User')
+				: t('mail', 'IMAP User')
+		},
+
+		inboundPasswordLabel() {
+			return this.manualConfig.inboundProtocol === 'pop3'
+				? t('mail', 'POP3 Password')
+				: t('mail', 'IMAP Password')
+		},
+
+		inboundSecurityLabel() {
+			return this.manualConfig.inboundProtocol === 'pop3'
+				? t('mail', 'POP3 Security')
+				: t('mail', 'IMAP Security')
+		},
+
 		submitButtonText() {
 			if (this.loading) {
 				return this.loadingMessage ?? t('mail', 'Connecting')
@@ -461,17 +527,60 @@ export default {
 			}
 		},
 
+		onProtocolChange(value) {
+			this.clearFeedback()
+			this.manualConfig.inboundProtocol = value
+			
+			// Update default ports based on protocol and current SSL mode
+			if (value === 'pop3') {
+				switch (this.manualConfig.imapSslMode) {
+					case 'none':
+					case 'tls':
+						this.manualConfig.imapPort = 110
+						break
+					case 'ssl':
+						this.manualConfig.imapPort = 995
+						break
+				}
+			} else {
+				// IMAP
+				switch (this.manualConfig.imapSslMode) {
+					case 'none':
+					case 'tls':
+						this.manualConfig.imapPort = 143
+						break
+					case 'ssl':
+						this.manualConfig.imapPort = 993
+						break
+				}
+			}
+		},
+
 		onImapSslModeChange(value) {
 			this.clearFeedback()
 			this.manualConfig.imapSslMode = value
-			switch (this.manualConfig.imapSslMode) {
-				case 'none':
-				case 'tls':
-					this.manualConfig.imapPort = 143
-					break
-				case 'ssl':
-					this.manualConfig.imapPort = 993
-					break
+			
+			if (this.manualConfig.inboundProtocol === 'pop3') {
+				switch (this.manualConfig.imapSslMode) {
+					case 'none':
+					case 'tls':
+						this.manualConfig.imapPort = 110
+						break
+					case 'ssl':
+						this.manualConfig.imapPort = 995
+						break
+				}
+			} else {
+				// IMAP
+				switch (this.manualConfig.imapSslMode) {
+					case 'none':
+					case 'tls':
+						this.manualConfig.imapPort = 143
+						break
+					case 'ssl':
+						this.manualConfig.imapPort = 993
+						break
+				}
 			}
 		},
 

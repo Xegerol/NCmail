@@ -15,6 +15,7 @@ use OCA\Mail\Exception\ServiceException;
 use OCA\Mail\IMAP\MailboxSync;
 use OCA\Mail\Service\AccountService;
 use OCA\Mail\Service\Sync\ImapToDbSynchronizer;
+use OCA\Mail\Service\Sync\Pop3ToDbSynchronizer;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
@@ -32,6 +33,7 @@ class SyncJob extends TimedJob {
 	private IUserManager $userManager;
 	private AccountService $accountService;
 	private ImapToDbSynchronizer $syncService;
+	private Pop3ToDbSynchronizer $pop3SyncService;
 	private MailboxSync $mailboxSync;
 	private LoggerInterface $logger;
 	private IJobList $jobList;
@@ -43,6 +45,7 @@ class SyncJob extends TimedJob {
 		AccountService $accountService,
 		MailboxSync $mailboxSync,
 		ImapToDbSynchronizer $syncService,
+		Pop3ToDbSynchronizer $pop3SyncService,
 		LoggerInterface $logger,
 		IJobList $jobList,
 		private readonly IConfig $config,
@@ -52,6 +55,7 @@ class SyncJob extends TimedJob {
 		$this->userManager = $userManager;
 		$this->accountService = $accountService;
 		$this->syncService = $syncService;
+		$this->pop3SyncService = $pop3SyncService;
 		$this->mailboxSync = $mailboxSync;
 		$this->logger = $logger;
 		$this->jobList = $jobList;
@@ -83,7 +87,12 @@ class SyncJob extends TimedJob {
 			return;
 		}
 
-		if (!$account->getMailAccount()->canAuthenticateImap()) {
+		$inboundProtocol = $account->getMailAccount()->getInboundProtocol() ?? 'imap';
+		
+		if ($inboundProtocol === 'pop3') {
+			// POP3 accounts don't need IMAP authentication
+			// Authentication will be checked during POP3 sync
+		} elseif (!$account->getMailAccount()->canAuthenticateImap()) {
 			$this->logger->debug('No authentication on IMAP possible, skipping background sync job');
 			return;
 		}
@@ -124,8 +133,22 @@ class SyncJob extends TimedJob {
 		}
 
 		try {
-			$this->mailboxSync->sync($account, $this->logger, true);
-			$this->syncService->syncAccount($account, $this->logger);
+			if ($inboundProtocol === 'pop3') {
+				// For POP3, sync all local mailboxes
+				$mailboxes = $this->accountService->findMailboxes($account);
+				foreach ($mailboxes as $mailbox) {
+					if ($mailbox->isLocalOnly()) {
+						// Only sync the INBOX for POP3 (where messages are downloaded)
+						if ($mailbox->getName() === 'INBOX') {
+							$this->pop3SyncService->sync($account, $mailbox, $this->logger);
+						}
+					}
+				}
+			} else {
+				// IMAP sync
+				$this->mailboxSync->sync($account, $this->logger, true);
+				$this->syncService->syncAccount($account, $this->logger);
+			}
 		} catch (IncompleteSyncException $e) {
 			$this->logger->warning($e->getMessage(), [
 				'exception' => $e,

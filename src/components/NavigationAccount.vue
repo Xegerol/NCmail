@@ -9,7 +9,7 @@
 			v-if="visible"
 			:id="id"
 			:key="id"
-			:name="account.emailAddress"
+			:name="accountDisplayName"
 			@update:open="onMenuToggle">
 			<!-- Actions -->
 			<template #actions>
@@ -37,12 +37,13 @@
 						{{ t('mail', 'Account settings') }}
 					</ActionButton>
 					<ActionCheckbox
+						v-if="!isPop3Account"
 						:checked="account.showSubscribedOnly"
 						:disabled="savingShowOnlySubscribed"
 						@update:checked="changeShowSubscribedOnly">
 						{{ t('mail', 'Show only subscribed folders') }}
 					</ActionCheckbox>
-					<ActionButton v-if="!editing && nameLabel" @click="openCreateMailbox">
+					<ActionButton v-if="!editing && nameLabel && !isPop3Account" @click="openCreateMailbox">
 						<template #icon>
 							<IconFolderAdd :size="20" />
 						</template>
@@ -181,6 +182,19 @@ export default {
 
 		id() {
 			return 'account-' + this.account.id
+		},
+
+		accountDisplayName() {
+			const protocol = this.account.inboundProtocol || 'imap'
+			if (protocol === 'pop3') {
+				return `${this.account.emailAddress} (POP3)`
+			}
+			return this.account.emailAddress
+		},
+
+		isPop3Account() {
+			const protocol = this.account.inboundProtocol || 'imap'
+			return protocol === 'pop3'
 		},
 
 		quotaText() {
